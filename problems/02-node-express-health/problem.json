@@ -1,0 +1,8 @@
+{
+  "id": "02-node-express-health",
+  "title": "Node.js Express Health API",
+  "difficulty": "easy",
+  "concepts": ["WORKDIR", "COPY", "RUN", "CMD"],
+  "appPort": 3000,
+  "baseImage": "node:20.19.4-alpine"
+}

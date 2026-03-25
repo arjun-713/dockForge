@@ -1,0 +1,8 @@
+{
+  "id": "03-fastapi-health",
+  "title": "FastAPI Health Service",
+  "difficulty": "medium",
+  "concepts": ["WORKDIR", "COPY", "RUN", "CMD", "EXPOSE"],
+  "appPort": 8000,
+  "baseImage": "python:3.12.10-slim"
+}
