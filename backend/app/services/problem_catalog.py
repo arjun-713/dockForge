@@ -23,7 +23,7 @@ class ProblemCatalog:
         return summaries
 
     def get_problem(self, problem_id: str) -> ProblemDetail | None:
-        problem_dir = self.problems_dir / problem_id
+        problem_dir = self.get_problem_dir(problem_id)
         if not problem_dir.is_dir():
             return None
 
@@ -38,8 +38,18 @@ class ProblemCatalog:
             concepts=metadata.concepts,
             app_port=metadata.app_port,
             base_image=metadata.base_image,
+            health_path=metadata.health_path,
             readme=readme_content,
         )
+
+    def get_metadata(self, problem_id: str) -> ProblemMetadata | None:
+        problem_dir = self.get_problem_dir(problem_id)
+        if not problem_dir.is_dir():
+            return None
+        return self._read_metadata(problem_dir)
+
+    def get_problem_dir(self, problem_id: str) -> Path:
+        return self.problems_dir / problem_id
 
     def _problem_dirs(self) -> list[Path]:
         if not self.problems_dir.exists():

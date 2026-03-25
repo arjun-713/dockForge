@@ -14,6 +14,7 @@ class ProblemMetadata(BaseModel):
     concepts: list[str] = Field(default_factory=list)
     app_port: int = Field(alias="appPort")
     base_image: str = Field(alias="baseImage")
+    health_path: str = Field(default="/health", alias="healthPath")
 
 
 class ProblemSummary(BaseModel):
@@ -32,6 +33,7 @@ class ProblemDetail(BaseModel):
     concepts: list[str]
     app_port: int = Field(alias="appPort")
     base_image: str = Field(alias="baseImage")
+    health_path: str = Field(alias="healthPath")
     readme: str
 
 

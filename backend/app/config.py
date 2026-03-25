@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     max_build_timeout: int = 60
     max_run_timeout: int = 30
     submission_memory_limit: str = "256m"
+    submission_cpu_quota: int = 50000
     problems_dir: str = "/app/problems"
 
 
