@@ -2,7 +2,12 @@
   "id": "01-nginx-static",
   "title": "Static Site with Nginx",
   "difficulty": "easy",
-  "concepts": ["FROM", "COPY", "EXPOSE"],
+  "concepts": [
+    "FROM",
+    "COPY",
+    "EXPOSE"
+  ],
   "appPort": 80,
-  "baseImage": "nginx:1.27.5-alpine"
+  "baseImage": "nginx:1.27.5-alpine",
+  "healthPath": "/"
 }
