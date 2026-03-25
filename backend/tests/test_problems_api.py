@@ -1,32 +1,18 @@
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
 
 from app.main import app
-from app.routes.problems import get_problem_catalog
 from app.services.problem_catalog import ProblemCatalog
 
-
-client = TestClient(app)
-
-
-def _override_catalog(path: Path) -> None:
-    app.dependency_overrides[get_problem_catalog] = lambda: ProblemCatalog(str(path))
-
-
-def _clear_override() -> None:
-    app.dependency_overrides.pop(get_problem_catalog, None)
-
-
-def test_list_problems_returns_seed_data() -> None:
-    _override_catalog(Path("../problems").resolve())
-    try:
-        response = client.get("/api/problems")
-    finally:
-        _clear_override()
-
+@pytest.mark.anyio
+async def test_list_problems_returns_seed_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PROBLEMS_DIR", str(Path("../problems").resolve()))
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/problems")
     assert response.status_code == 200
     payload = response.json()
     assert "problems" in payload
@@ -34,12 +20,12 @@ def test_list_problems_returns_seed_data() -> None:
     assert payload["problems"][0]["id"] == "01-nginx-static"
 
 
-def test_get_problem_detail() -> None:
-    _override_catalog(Path("../problems").resolve())
-    try:
-        response = client.get("/api/problems/02-node-express-health")
-    finally:
-        _clear_override()
+@pytest.mark.anyio
+async def test_get_problem_detail(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PROBLEMS_DIR", str(Path("../problems").resolve()))
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/problems/02-node-express-health")
 
     assert response.status_code == 200
     payload = response.json()
@@ -48,12 +34,12 @@ def test_get_problem_detail() -> None:
     assert "Problem description" in payload["readme"]
 
 
-def test_get_problem_not_found() -> None:
-    _override_catalog(Path("../problems").resolve())
-    try:
-        response = client.get("/api/problems/does-not-exist")
-    finally:
-        _clear_override()
+@pytest.mark.anyio
+async def test_get_problem_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PROBLEMS_DIR", str(Path("../problems").resolve()))
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/problems/does-not-exist")
 
     assert response.status_code == 404
 

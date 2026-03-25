@@ -1,30 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException
+import os
 
-from app.config import get_settings
-from app.models.problem import ProblemDetail, ProblemSummary
+from fastapi import APIRouter, HTTPException
 from app.services.problem_catalog import ProblemCatalog
 
 router = APIRouter(tags=["problems"])
 
 
-def get_problem_catalog() -> ProblemCatalog:
-    settings = get_settings()
-    return ProblemCatalog(problems_dir=settings.problems_dir)
+def _problem_catalog() -> ProblemCatalog:
+    problems_dir = os.getenv("PROBLEMS_DIR", "/app/problems")
+    return ProblemCatalog(problems_dir=problems_dir)
 
 
 @router.get("/problems")
-async def list_problems(
-    catalog: ProblemCatalog = Depends(get_problem_catalog),
-) -> dict[str, list[ProblemSummary]]:
-    return {"problems": catalog.list_problems()}
+async def list_problems() -> dict[str, list[dict[str, object]]]:
+    catalog = _problem_catalog()
+    problems = [item.model_dump() for item in catalog.list_problems()]
+    return {"problems": problems}
 
 
 @router.get("/problems/{problem_id}")
 async def get_problem(
     problem_id: str,
-    catalog: ProblemCatalog = Depends(get_problem_catalog),
-) -> ProblemDetail:
+) -> dict[str, object]:
+    catalog = _problem_catalog()
     problem = catalog.get_problem(problem_id)
     if problem is None:
         raise HTTPException(status_code=404, detail=f"Problem '{problem_id}' not found")
-    return problem
+    return problem.model_dump(by_alias=True)

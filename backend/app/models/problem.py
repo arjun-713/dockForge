@@ -33,3 +33,7 @@ class ProblemDetail(BaseModel):
     app_port: int = Field(alias="appPort")
     base_image: str = Field(alias="baseImage")
     readme: str
+
+
+class ProblemListResponse(BaseModel):
+    problems: list[ProblemSummary]
