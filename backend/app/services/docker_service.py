@@ -18,6 +18,8 @@ from app.services.problem_catalog import ProblemCatalog
 class SubmissionEvaluationResult:
     passed: bool
     logs: str
+    build_time_ms: int | None = None
+    image_size_bytes: int | None = None
 
 
 class ProblemNotFoundError(Exception):
@@ -45,6 +47,8 @@ class DockerSubmissionService:
         self.max_run_timeout = max_run_timeout
         self.submission_memory_limit = submission_memory_limit
         self.submission_cpu_quota = submission_cpu_quota
+        self._last_build_time_ms: int | None = None
+        self._last_image_size_bytes: int | None = None
 
     def evaluate_submission(self, problem_id: str, dockerfile_content: str) -> SubmissionEvaluationResult:
         metadata = self.catalog.get_metadata(problem_id)
@@ -57,6 +61,8 @@ class DockerSubmissionService:
             raise DockerEvaluationError(f"Problem '{problem_id}' is missing app/ directory")
 
         client = docker.DockerClient(base_url=self.docker_socket)
+        self._last_build_time_ms = None
+        self._last_image_size_bytes = None
 
         with tempfile.TemporaryDirectory(prefix=f"dockforge-{problem_id}-") as workspace_str:
             workspace = Path(workspace_str)
@@ -75,7 +81,12 @@ class DockerSubmissionService:
                     run_result.logs.strip() or "(none)",
                 ]
             )
-            return SubmissionEvaluationResult(passed=run_result.passed, logs=combined_logs)
+            return SubmissionEvaluationResult(
+                passed=run_result.passed,
+                logs=combined_logs,
+                build_time_ms=self._last_build_time_ms,
+                image_size_bytes=self._last_image_size_bytes,
+            )
 
     @staticmethod
     def _prepare_workspace(app_dir: Path, workspace: Path, dockerfile_content: str) -> None:
@@ -104,8 +115,9 @@ class DockerSubmissionService:
         )
 
     def _build_image(self, client: docker.DockerClient, workspace: Path, image_tag: str) -> str:
+        build_started_at = time.monotonic()
         try:
-            _, build_events = client.images.build(
+            image, build_events = client.images.build(
                 path=str(workspace),
                 tag=image_tag,
                 rm=True,
@@ -129,6 +141,9 @@ class DockerSubmissionService:
                 lines.append(str(event["stream"]).strip())
             if "error" in event:
                 lines.append(str(event["error"]).strip())
+
+        self._last_build_time_ms = round((time.monotonic() - build_started_at) * 1000)
+        self._last_image_size_bytes = image.attrs.get("Size", 0)
 
         return "\n".join(filter(None, lines))
 
@@ -157,7 +172,12 @@ class DockerSubmissionService:
             port_info = ports.get(port_key)
             if not port_info:
                 runtime_logs = self._safe_container_logs(container)
-                return SubmissionEvaluationResult(False, f"Container did not expose port {metadata.app_port}.\n{runtime_logs}")
+                return SubmissionEvaluationResult(
+                    False,
+                    f"Container did not expose port {metadata.app_port}.\n{runtime_logs}",
+                    build_time_ms=self._last_build_time_ms,
+                    image_size_bytes=self._last_image_size_bytes,
+                )
 
             host_port = int(port_info[0]["HostPort"])
             health_path = metadata.health_path if metadata.health_path.startswith("/") else f"/{metadata.health_path}"
@@ -168,14 +188,24 @@ class DockerSubmissionService:
                 try:
                     with urllib.request.urlopen(url, timeout=2) as response:
                         if response.status == 200:
-                            return SubmissionEvaluationResult(True, self._safe_container_logs(container))
+                            return SubmissionEvaluationResult(
+                                True,
+                                self._safe_container_logs(container),
+                                build_time_ms=self._last_build_time_ms,
+                                image_size_bytes=self._last_image_size_bytes,
+                            )
                 except urllib.error.URLError:
                     time.sleep(1)
                 except TimeoutError:
                     time.sleep(1)
 
             runtime_logs = self._safe_container_logs(container)
-            return SubmissionEvaluationResult(False, f"Health check failed at {url}\n{runtime_logs}")
+            return SubmissionEvaluationResult(
+                False,
+                f"Health check failed at {url}\n{runtime_logs}",
+                build_time_ms=self._last_build_time_ms,
+                image_size_bytes=self._last_image_size_bytes,
+            )
         except DockerException as exc:
             raise DockerEvaluationError(f"Docker run error: {exc}") from exc
         finally:

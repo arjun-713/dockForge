@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     submission_memory_limit: str = "256m"
     submission_cpu_quota: int = 50000
     problems_dir: str = "/app/problems"
+    max_submission_size_bytes: int = 32_768
 
 
 @lru_cache
