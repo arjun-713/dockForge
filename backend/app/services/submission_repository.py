@@ -9,6 +9,7 @@ from app.models.submission import (
     SubmissionReviewResult,
     SubmissionScore,
 )
+from app.models.leaderboard import LeaderboardEntry
 
 
 def _sqlite_path_from_url(database_url: str) -> Path:
@@ -138,6 +139,39 @@ class SubmissionRepository:
             score=score,
             created_at=datetime.fromisoformat(row[9]),
         )
+
+    def list_leaderboard(self, *, limit: int, problem_id: str | None = None) -> list[LeaderboardEntry]:
+        query = """
+            SELECT s.id, s.problem_id, sc.final_score, sc.build_time_score, sc.image_size_score,
+                   sc.best_practice_score, sc.difficulty_multiplier, sc.created_at
+            FROM scores sc
+            JOIN submissions s ON s.id = sc.submission_id
+        """
+        params: tuple[object, ...]
+        if problem_id is not None:
+            query += " WHERE s.problem_id = ?"
+            params = (problem_id, limit)
+        else:
+            params = (limit,)
+
+        query += " ORDER BY sc.final_score DESC, sc.created_at ASC LIMIT ?"
+
+        with sqlite3.connect(self.database_path) as conn:
+            rows = conn.execute(query, params).fetchall()
+
+        return [
+            LeaderboardEntry(
+                submissionId=row[0],
+                problemId=row[1],
+                finalScore=row[2],
+                buildTimeScore=row[3],
+                imageSizeScore=row[4],
+                bestPracticeScore=row[5],
+                difficultyMultiplier=row[6],
+                createdAt=datetime.fromisoformat(row[7]),
+            )
+            for row in rows
+        ]
 
     def _initialize(self) -> None:
         with sqlite3.connect(self.database_path) as conn:
