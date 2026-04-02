@@ -24,3 +24,19 @@ export interface SubmissionResult {
   passed: boolean;
   logs: string;
 }
+
+export interface LeaderboardEntry {
+  submissionId: string;
+  problemId: string;
+  finalScore: number;
+  buildTimeScore: number;
+  imageSizeScore: number;
+  bestPracticeScore: number;
+  difficultyMultiplier: number;
+  createdAt: string;
+}
+
+export interface LeaderboardResponse {
+  entries: LeaderboardEntry[];
+}
+
