@@ -1,29 +1,29 @@
 import os
 
 from fastapi import APIRouter, HTTPException
+from app.models.problem import ProblemDetail, ProblemListResponse
+from app.services.challenge_service import ChallengeService
 from app.services.problem_catalog import ProblemCatalog
 
 router = APIRouter(tags=["problems"])
 
 
-def _problem_catalog() -> ProblemCatalog:
+def _challenge_service() -> ChallengeService:
     problems_dir = os.getenv("PROBLEMS_DIR", "/app/problems")
-    return ProblemCatalog(problems_dir=problems_dir)
+    catalog = ProblemCatalog(problems_dir=problems_dir)
+    return ChallengeService(catalog)
 
 
-@router.get("/problems")
-async def list_problems() -> dict[str, list[dict[str, object]]]:
-    catalog = _problem_catalog()
-    problems = [item.model_dump() for item in catalog.list_problems()]
-    return {"problems": problems}
+@router.get("/problems", response_model=ProblemListResponse)
+async def list_problems() -> ProblemListResponse:
+    service = _challenge_service()
+    return service.list_challenges()
 
 
-@router.get("/problems/{problem_id}")
-async def get_problem(
-    problem_id: str,
-) -> dict[str, object]:
-    catalog = _problem_catalog()
-    problem = catalog.get_problem(problem_id)
+@router.get("/problems/{problem_id}", response_model=ProblemDetail)
+async def get_problem(problem_id: str) -> ProblemDetail:
+    service = _challenge_service()
+    problem = service.get_challenge(problem_id)
     if problem is None:
         raise HTTPException(status_code=404, detail=f"Problem '{problem_id}' not found")
-    return problem.model_dump(by_alias=True)
+    return problem

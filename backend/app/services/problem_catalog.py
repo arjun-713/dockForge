@@ -18,6 +18,9 @@ class ProblemCatalog:
                     title=metadata.title,
                     difficulty=metadata.difficulty,
                     concepts=metadata.concepts,
+                    category=metadata.category or "general",
+                    tier=metadata.tier or "basic",
+                    repo_url=metadata.repo_url,
                 )
             )
         return summaries
@@ -39,6 +42,13 @@ class ProblemCatalog:
             app_port=metadata.app_port,
             base_image=metadata.base_image,
             health_path=metadata.health_path,
+            category=metadata.category or "general",
+            tier=metadata.tier or "basic",
+            repo_url=metadata.repo_url,
+            constraints=metadata.constraints,
+            baseline_build_ms=metadata.baseline_build_ms,
+            baseline_size_bytes=metadata.baseline_size_bytes,
+            snapshot=metadata.snapshot,
             readme=readme_content,
         )
 

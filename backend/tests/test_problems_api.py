@@ -18,6 +18,9 @@ async def test_list_problems_returns_seed_data(monkeypatch: pytest.MonkeyPatch) 
     assert "problems" in payload
     assert len(payload["problems"]) >= 3
     assert payload["problems"][0]["id"] == "01-nginx-static"
+    assert payload["problems"][0]["category"] == "nginx"
+    assert payload["problems"][0]["tier"] == "basic"
+    assert "repoUrl" in payload["problems"][0]
 
 
 @pytest.mark.anyio
@@ -32,6 +35,12 @@ async def test_get_problem_detail(monkeypatch: pytest.MonkeyPatch) -> None:
     assert payload["id"] == "02-node-express-health"
     assert payload["appPort"] == 3000
     assert "Problem description" in payload["readme"]
+    assert payload["category"] == "node"
+    assert payload["tier"] == "basic"
+    assert payload["baselineBuildMs"] == 30000
+    assert payload["baselineSizeBytes"] == 250000000
+    assert payload["snapshot"]["source"] == "local-dev"
+    assert any(item["id"] == "runtime-port" for item in payload["constraints"])
 
 
 @pytest.mark.anyio
